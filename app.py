@@ -14,7 +14,8 @@ for url in bikes:
     colors.append(url.split('=')[1].replace('%2','-').strip('\n')) # Cleaning up color substring
 # Our first option is for testing our code on known model that is in stock
 models[0] = 'TEST  ' + models[0]
-bike = st.radio("Which bike's stock do you wish to check?", tuple(models))
+options = [a + ' - ' + b for a,b in zip(colors, models)]
+bike = st.radio("Which bike's stock do you wish to check?", tuple(options))
 opbike = models.index(bike)  
 
 
