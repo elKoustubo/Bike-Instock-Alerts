@@ -16,7 +16,7 @@ for url in bikes:
 models[0] = 'TEST  ' + models[0]
 options = [a + ' - ' + b for a,b in zip(colors, models)]
 bike = st.radio("Which bike's stock do you wish to check?", tuple(options))
-opbike = models.index(bike)  
+opbike = options.index(bike)  
 
 
 size = st.radio("Size", ('S','M','L','XL','2XL'))
@@ -28,7 +28,8 @@ except:
     alert = False
 
 if alert:
-    st.markdown(f" #### Bike IS in stock! \
-                   \nfollow the link to buy {geturl(opbike,size)}")
+    st.markdown(f" #### Bike :bike: IS in stock! :beers: \
+                   \nfollow the link to buy - \
+                   \n{geturl(opbike,size)}")
 else:
-    st.markdown(f" #### Bike IS NOT in stock! ☹️ ")
+    st.markdown(f" #### Bike IS NOT in stock! :sob: ")
