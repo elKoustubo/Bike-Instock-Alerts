@@ -1,38 +1,34 @@
-import requests
+import os, logging, requests
+from logging import handlers
+from black import main
 from bs4 import BeautifulSoup
-import os
-import logging
 from datetime import date
 
 #Setting up logger
-logging.basicConfig(filename='alert.log', filemode='a',
+rfh = handlers.RotatingFileHandler(
+    filename='alert.log', 
+    mode='a',
+    maxBytes=10*1024, # Limiting log size to 10kbs
+    backupCount=1)
+logging.basicConfig(#filename='alert.log', filemode='a',
     level=logging.INFO,
     format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt='%Y-%m-%d')
+    datefmt='%Y-%m-%d',
+    handlers=[rfh])
 logger=logging.getLogger() 
-
+# List of our desired bikes
+with open('bike_urls.txt') as bikes:
+    bikes = bikes.readlines()
 # Function to get url of our desired bike and in its desired size
 # Please note that url must point to a specific bike and size for our getalert function to work correctly
-def geturl(opbike:int=1, optype:int=1, opsize:str='S'): # My bike size is S, hence it's default
-    if opbike == 1: #Endurace bike family
-        mainurl = "https://www.canyon.com/en-us/road-bikes/endurance-bikes/endurace/"
-        if optype == 1: # endurace-cf-sl-7-disc
-            opt = "cf-sl/endurace-cf-sl-7-disc/2962.html?dwvar_2962_pv_rahmenfarbe=YE%2FBK&dwvar_2962_pv_rahmengroesse=" + opsize
-        elif optype == 2: # BLUE endurace-8-disc
-            opt = "al/endurace-8-disc/2854.html?dwvar_2854_pv_rahmenfarbe=BK%2FBU&dwvar_2854_pv_rahmengroesse=" + opsize
-        elif optype == 3: # BLACK endurace-8-disc
-            opt = "al/endurace-8-disc/2854.html?dwvar_2854_pv_rahmenfarbe=BK%2FBK&dwvar_2854_pv_rahmengroesse=" + opsize
-    elif opbike == 2: # Grizl bike family
-        mainurl = "https://www.canyon.com/en-us/gravel-bikes/bike-packing/grizl/"
-        if optype == 1: # grizl-cf-sl-6
-            opt = "cf-sl/grizl-cf-sl-6/3243.html?dwvar_3243_pv_rahmenfarbe=YE&dwvar_3243_pv_rahmengroesse=" + opsize
-        elif optype == 2: # grizl-7
-            opt = "al/grizl-7/2845.html?dwvar_2845_pv_rahmenfarbe=GY%2FBK&dwvar_2845_pv_rahmengroesse=" + opsize
-    elif opbike == 3: # This is an option to test code for a bike that we know is in stock
-        mainurl = "https://www.canyon.com/en-us/road-bikes/endurance-bikes/endurace/"
-        opt = "cf-sl/endurace-cf-sl-8-disc-di2/3384.html?dwvar_3384_pv_rahmenfarbe=GY%2FBK&dwvar_3384_pv_rahmengroesse=XL"
+def geturl(opbike:int=1, opsize:str='S'): # My bike size is S, hence it's default
+    mainurl = bikes[opbike]
+    # Each bike has a unique 4 digit identifier, we will extract that from mainurl
+    bikecode = mainurl.split('/')[9][:4]
+    #When bike is available for size selection, then we will need to append the size portion of url string to main url
+    sizeurl = "&dwvar_"+bikecode+"_pv_rahmengroesse="
 
-    return mainurl+opt
+    return mainurl+sizeurl+opsize
 
 # Alert if the item is available to be added to cart i.e. it is in stock, yay!
 def getalert(url = geturl()):
@@ -52,20 +48,21 @@ def getalert(url = geturl()):
         return alert, bike
 
 # Using Twilio free account to send myself SMS if the desired item is in stock!
-def checkstock(opbike:int=1, optype:int=1, opsize:str='S'):
-    alert, bike = getalert(geturl(opbike,optype,opsize))
+def checkstock(opbike:int=1, opsize:str='S'):
+    alert, bike = getalert(geturl(opbike,opsize))
 
-    # First check if Alert was sent on that particular day, I do not wish to spam my inbox
+    # First check if an Alert was sent on that particular day, I do not wish to spam my inbox
     today = date.today()
     today = today.strftime('%Y-%m-%d')
     
     with open('alert.log') as f:
-        f = f.readlines()
-    try:
-        if today in f[-1]: # If log has entry for today then alert was already sent
-            alert = False
-    except:
-        pass
+        f = f.readlines() # Let's review our logs
+
+    for line in f:
+        if bike in line: # If log has entry for today then alert was already sent
+            if today in line: 
+                alert = False
+                break
         
     if alert:
         from twilio.rest import Client
@@ -86,14 +83,11 @@ def checkstock(opbike:int=1, optype:int=1, opsize:str='S'):
             )
         setup_twilio_client()
         send_notification()
-        logger.info('Alert was sent!')
+        logger.info(f'Alert for {bike} was sent!')
 
-# Get alerted if any of the following bike comes back in stock!!! Hurrah!
-checkstock(optype=1)
-checkstock(optype=2)
-checkstock(optype=3)
-checkstock(opbike=2, optype=1)
-checkstock(opbike=2, optype=2)
+# Get alerted if any of the bike in our shortlist comes back in stock!!! Hurrah!
+for i in range(len(bikes)-1):
+    checkstock(opbike=i+1)
 
-checkstock(opbike=3)  # Uncomment for SMS Alert Test 
+#checkstock(opbike=0,opsize='2XL')  # Uncomment for SMS Alert Test 
 
