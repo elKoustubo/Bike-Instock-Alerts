@@ -22,7 +22,7 @@ with open('bike_urls.txt') as bikes:
 # Function to get url of our desired bike and in its desired size
 # Please note that url must point to a specific bike and size for our getalert function to work correctly
 def geturl(opbike:int=1, opsize:str='S'): # My bike size is S, hence it's default
-    mainurl = bikes[opbike]
+    mainurl = bikes[opbike].strip('\n')
     # Each bike has a unique 4 digit identifier, we will extract that from mainurl
     bikecode = mainurl.split('/')[9][:4]
     #When bike is available for size selection, then we will need to append the size portion of url string to main url
