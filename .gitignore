@@ -131,3 +131,4 @@ dmypy.json
 # Secrets
 killi.py
 stock_checker.ipynb
+alert.log

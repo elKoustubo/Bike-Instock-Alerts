@@ -1,5 +1,15 @@
 import requests
 from bs4 import BeautifulSoup
+import os
+import logging
+from datetime import date
+
+#Setting up logger
+logging.basicConfig(filename='alert.log', filemode='a',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt='%Y-%m-%d')
+logger=logging.getLogger() 
 
 # Function to get url of our desired bike and in its desired size
 # Please note that url must point to a specific bike and size for our getalert function to work correctly
@@ -45,14 +55,25 @@ def getalert(url = geturl()):
 def checkstock(opbike:int=1, optype:int=1, opsize:str='S'):
     alert, bike = getalert(geturl(opbike,optype,opsize))
 
+    # First check if Alert was sent on that particular day, I do not wish to spam my inbox
+    today = date.today()
+    today = today.strftime('%Y-%m-%d')
+    
+    with open('alert.log') as f:
+        f = f.readlines()
+    try:
+        if today in f[-1]: # If log has entry for today then alert was already sent
+            alert = False
+    except:
+        pass
+        
     if alert:
-        import killi # Twilio account token info
         from twilio.rest import Client
 
         # Initiate Twilio client
         def setup_twilio_client():
-            account_sid = killi.TWILIO_ACCOUNT_SID()
-            auth_token = killi.TWILIO_AUTH_TOKEN()
+            account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+            auth_token = os.getenv('TWILIO_AUTH_TOKEN')
             return Client(account_sid, auth_token)
 
         # Define SMS content, sender, receiver  
@@ -60,11 +81,12 @@ def checkstock(opbike:int=1, optype:int=1, opsize:str='S'):
             twilio_client = setup_twilio_client()
             twilio_client.messages.create(
                 body="Your " + bike + " is available for purchase.",
-                from_=killi.TWILIO_FROM_NUMBER(),
-                to=killi.MY_PHONE_NUMBER()
+                from_=os.getenv('TWILIO_FROM_NUMBER'),
+                to=os.getenv('MY_PHONE_NUMBER')
             )
         setup_twilio_client()
         send_notification()
+        logger.info('Alert was sent!')
 
 # Get alerted if any of the following bike comes back in stock!!! Hurrah!
 checkstock(optype=1)
@@ -73,5 +95,5 @@ checkstock(optype=3)
 checkstock(opbike=2, optype=1)
 checkstock(opbike=2, optype=2)
 
-#checkstock(opbike=3)  # Uncomment for SMS Alert Test 
+checkstock(opbike=3)  # Uncomment for SMS Alert Test 
 
