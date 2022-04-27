@@ -1,6 +1,5 @@
 import os, logging, requests
 from logging import handlers
-from black import main
 from bs4 import BeautifulSoup
 from datetime import date
 
